@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dark Net Traffic Analyzer</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+        header {
+            text-align: center;
+            padding: 20px;
+            background-color: #007bff;
+            color: white;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        form {
+            display: flex;
+            flex-direction: column;
+        }
+        label {
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input[type="file"], textarea {
+            margin-bottom: 15px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            background-color: #28a745;
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #218838;
+        }
+        #results {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #e9ecef;
+            border-radius: 4px;
+            display: none;
+        }
+        #results h3 {
+            margin-top: 0;
+        }
+        .threat-level {
+            font-weight: bold;
+            color: #dc3545;
+        }
+        .low { color: #28a745; }
+        .medium { color: #ffc107; }
+        .high { color: #dc3545; }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Dark Net Traffic Analyzer</h1>
+        <p>Upload network packets or enter data to analyze for potential cyber threats using ML/DL models.</p>
+    </header>
+    <div class="container">
+        <form id="analysisForm">
+            <label for="packetFile">Upload Packet File (e.g., PCAP or text):</label>
+            <input type="file" id="packetFile" accept=".pcap,.txt">
+
+            <label for="packetData">Or Enter Packet Data Manually:</label>
+            <textarea id="packetData" rows="5" placeholder="Enter raw packet data here..."></textarea>
+
+            <button type="submit">Analyze Traffic</button>
+        </form>
+
+        <div id="results">
+            <h3>Analysis Results</h3>
+            <p id="threatSummary"></p>
+            <p id="detailedInfo"></p>
+        </div>
+    </div>
+
+    <script>
+        const form = document.getElementById('analysisForm');
+        const resultsDiv = document.getElementById('results');
+        const threatSummary = document.getElementById('threatSummary');
+        const detailedInfo = document.getElementById('detailedInfo');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const file = document.getElementById('packetFile').files[0];
+            const manualData = document.getElementById('packetData').value;
+
+            if (!file && !manualData) {
+                alert('Please upload a file or enter data.');
+                return;
+            }
+
+            const formData = new FormData();
+            if (file) {
+                formData.append('file', file);
+            }
+            if (manualData) {
+                formData.append('data', manualData);
+            }
+
+            try {
+                const response = await fetch('/analyze', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    throw new Error('Analysis failed');
+                }
+
+                const result = await response.json();
+                displayResults(result);
+            } catch (error) {
+                console.error('Error:', error);
+                threatSummary.textContent = 'Error during analysis. Please try again.';
+                resultsDiv.style.display = 'block';
+            }
+        });
+
+        function displayResults(result) {
+            let levelClass = '';
+            if (result.threat_level === 'Low') levelClass = 'low';
+            else if (result.threat_level === 'Medium') levelClass = 'medium';
+            else if (result.threat_level === 'High') levelClass = 'high';
+
+            threatSummary.innerHTML = `Threat Level: <span class="threat-level ${levelClass}">${result.threat_level}</span>`;
+            detailedInfo.textContent = result.details || 'No additional details available.';
+            resultsDiv.style.display = 'block';
+        }
+    </script>
+</body>
+</html>
